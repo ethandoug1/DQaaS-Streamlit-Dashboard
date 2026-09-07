@@ -4,14 +4,29 @@ import pandas as pd
 import requests
 import streamlit as st
 
-# 1. Page Configuration
+# =========================================================
+# 1. PAGE CONFIGURATION & STYLING
+# =========================================================
 st.set_page_config(
     page_title="Metadata Driven DQ Profile",
-    page_icon="📈",
+    page_icon="🎯",
     layout="wide",
 )
 
-st.title("📈 Metadata Driven DQ Profile")
+# Custom CSS to hide Streamlit header, footer, and "Created by" badge
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            [data-testid="stStatusWidget"] {visibility: hidden;}
+            [data-testid="stActionButtonIcon"] {visibility: hidden;}
+            div[class*="viewerBadge"] {display: none !important;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+st.title("🎯 Metadata Driven DQ Profile")
 st.caption("No pre-loaded data or rules. Upload a dataset and rules.xlsx to execute an audit.")
 
 # =========================================================
