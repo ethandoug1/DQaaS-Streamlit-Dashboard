@@ -8,12 +8,12 @@ import streamlit as st
 # 1. PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(
-    page_title="Data Quality Suite (Zero-State Engine)",
+    page_title="Metadata-Driven DQ Profile",
     page_icon="📈",
     layout="wide",
 )
 
-st.title("📈 Data Quality Suite (Zero-State Engine)")
+st.title("📈 Metadata-Driven DQ Profile")
 st.caption("No pre-loaded data or rules. Upload a dataset and rules.xlsx to execute an audit.")
 
 # =========================================================
