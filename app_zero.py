@@ -8,18 +8,17 @@ import streamlit as st
 # 1. PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(
-    page_title="Metadata-Driven DQ Profile",
-    page_icon="📈",
+    page_title="Metadata Driven DQ Profile",
     layout="wide",
 )
 
-st.title("📈 Metadata-Driven DQ Profile")
+st.title("Metadata Driven DQ Profile")
 st.caption("No pre-loaded data or rules. Upload a dataset and rules.xlsx to execute an audit.")
 
 # =========================================================
 # SECTION 1: INGESTION ENGINE (SIDEBAR)
 # =========================================================
-st.sidebar.header("📥 Ingestion Engine")
+st.sidebar.header("Ingestion Engine")
 source_type = st.sidebar.radio(
     "Select Data Source Type:",
     [
@@ -101,7 +100,7 @@ metadata_rules_df = None
 
 if has_data:
     st.sidebar.divider()
-    st.sidebar.header("📜 Metadata Rules (Excel)")
+    st.sidebar.header("Metadata Rules (Excel)")
     
     excel_file = st.sidebar.file_uploader(
         "Upload Metadata Rules (.xlsx)", type=["xlsx"]
@@ -241,17 +240,18 @@ if has_data and metadata_rules_df is not None and not metadata_rules_df.empty:
     st.divider()
 
     # Tabbed Display
-    tab_excel, tab_profile, tab_preview, tab_schema = st.tabs(
+    tab_excel, tab_profile, tab_preview, tab_schema, tab_sql = st.tabs(
         [
-            "📑 Excel Audit Log",
-            "📊 Metadata Attribute Profile",
-            "📋 Data Preview",
-            "📐 Schema & Types",
+            "Excel Audit Log",
+            "Metadata Attribute Profile",
+            "Data Preview",
+            "Schema & Types",
+            "SQL Query Console",
         ]
     )
 
     with tab_excel:
-        st.subheader("🚨 Audit Results")
+        st.subheader("Audit Results")
         if not audit_log_df.empty:
             st.dataframe(audit_log_df, use_container_width=True)
 
@@ -263,7 +263,7 @@ if has_data and metadata_rules_df is not None and not metadata_rules_df.empty:
             processed_data = output.getvalue()
 
             st.download_button(
-                label="📥 Download Audit Report (.xlsx)",
+                label="Download Audit Report (.xlsx)",
                 data=processed_data,
                 file_name="audit_log.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -285,9 +285,24 @@ if has_data and metadata_rules_df is not None and not metadata_rules_df.empty:
         )
         st.dataframe(schema_df[["Column Name", "Type"]], use_container_width=True)
 
+    with tab_sql:
+        st.subheader("Interactive SQL Console")
+        st.caption("Query the uploaded dataset directly in memory using standard DuckDB SQL syntax. Table name: `target_data`")
+        
+        default_query = "SELECT * FROM target_data LIMIT 25;"
+        user_query = st.text_area("Write SQL Query:", value=default_query, height=120)
+        
+        if st.button("Execute SQL"):
+            try:
+                sql_result_df = con.execute(user_query).df()
+                st.success(f"Query returned {len(sql_result_df):,} rows.")
+                st.dataframe(sql_result_df, use_container_width=True)
+            except Exception as e:
+                st.error(f"SQL Execution Error: {e}")
+
 elif has_data:
     st.info("👈 Dataset loaded! Please upload a `rules.xlsx` file in the sidebar to run checks.")
-    st.subheader("📋 Dataset Preview")
+    st.subheader("Data Preview")
     st.dataframe(con.execute("SELECT * FROM target_data LIMIT 10").df(), use_container_width=True)
 
 else:
