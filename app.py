@@ -36,18 +36,16 @@ df_temp = None
 # OPTION 1: Local File Upload or Default Fallback
 if source_type == "Local CSV File":
     uploaded_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
-    default_path = r"C:\Users\EthanDouglas\Desktop\DQaaS\sample_orders.csv"
+    default_path = "sample_orders.csv"  # Relative path for Cloud compatibility
 
     if uploaded_file is not None:
-        temp_path = os.path.join(
-            r"C:\Users\EthanDouglas\Desktop\DQaaS", "temp_uploaded.csv"
-        )
+        temp_path = "temp_uploaded.csv"  # Relative temp file for Cloud compatibility
         with open(temp_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
-        target_file_path = temp_path.replace("\\", "/")
+        target_file_path = temp_path
         st.sidebar.success("Loaded uploaded CSV into temp buffer.")
     elif os.path.exists(default_path):
-        target_file_path = default_path.replace("\\", "/")
+        target_file_path = default_path
         st.sidebar.info("Using default local dataset.")
 
 # OPTION 2: Cloud Database (SQL Queries)
@@ -144,17 +142,17 @@ if has_data:
     excel_file = st.sidebar.file_uploader(
         "Upload Metadata Rules (.xlsx)", type=["xlsx"]
     )
-    default_rules_path = r"C:\Users\EthanDouglas\Desktop\DQaaS\rules.xlsx"
+    default_rules_path = "rules.xlsx"  # Relative path for Cloud compatibility
 
     if excel_file is not None:
         metadata_rules_df = pd.read_excel(excel_file)
         st.sidebar.success("Loaded uploaded rules.xlsx.")
     elif os.path.exists(default_rules_path):
         metadata_rules_df = pd.read_excel(default_rules_path)
-        st.sidebar.info("Using default local rules.xlsx.")
+        st.sidebar.info("Using default rules.xlsx.")
 
 # =========================================================
-# SECTION 4: METADATA RULE EVALUATION ENGINE (STRICT SCOPE)
+# SECTION 4: METADATA RULE EVALUATION ENGINE (CASE-INSENSITIVE & STRICT)
 # =========================================================
 audit_log_df = pd.DataFrame()
 profile_df = pd.DataFrame()
@@ -162,6 +160,9 @@ profile_df = pd.DataFrame()
 if has_data:
 
     audit_records = []
+
+    # Map lower-case dataset column names to exact DuckDB identifiers
+    col_map = {c.strip().lower(): c for c in all_columns}
 
     # 1. Evaluate ONLY rules declared inside rules.xlsx
     if metadata_rules_df is not None and not metadata_rules_df.empty:
@@ -171,20 +172,22 @@ if has_data:
         ]
 
         for _, row in metadata_rules_df.iterrows():
-            col_name = str(row.get("column_name", "")).strip()
+            raw_col = str(row.get("column_name", "")).strip()
+            col_key = raw_col.lower()
             rule_type = str(row.get("rule_type", "")).strip().lower()
-            severity = str(row.get("severity", "MEDIUM")).upper()
-            c = f'"{col_name}"'
+            severity = str(row.get("severity", "MEDIUM")).strip().upper()
 
-            # Strict Filter: Process ONLY if column exists in target dataset
-            if col_name in all_columns:
+            # Strict Filter: Process ONLY if column exists in target dataset (case-insensitive check)
+            if col_key in col_map:
+                col_name = col_map[col_key]  # Use exact column case from DuckDB
+                c = f'"{col_name}"'
 
                 # --- RULE 1: COMPLETENESS ---
                 if rule_type == "completeness":
                     null_cnt = con.execute(
                         f"SELECT COUNT(*) - COUNT({c}) FROM target_data"
                     ).fetchone()[0]
-                    passed = null_cnt == 0
+                    passed = (null_cnt == 0)
                     details = f"Found {null_cnt:,} null values"
 
                 # --- RULE 2: UNIQUENESS ---
@@ -192,7 +195,7 @@ if has_data:
                     dup_cnt = con.execute(
                         f"SELECT COUNT({c}) - COUNT(DISTINCT {c}) FROM target_data"
                     ).fetchone()[0]
-                    passed = dup_cnt == 0
+                    passed = (dup_cnt == 0)
                     details = f"Found {dup_cnt:,} duplicate keys"
 
                 # --- RULE 3: RANGE ---
@@ -202,7 +205,7 @@ if has_data:
                     violations = con.execute(
                         f"SELECT COUNT(*) FROM target_data WHERE {c} < {p_min} OR {c} > {p_max}"
                     ).fetchone()[0]
-                    passed = violations == 0
+                    passed = (violations == 0)
                     details = f"Found {violations:,} records outside range [{p_min}, {p_max}]"
 
                 # --- RULE 4: ALLOWED VALUES ---
@@ -212,7 +215,7 @@ if has_data:
                     invalid_cnt = con.execute(
                         f"SELECT COUNT(*) FROM target_data WHERE {c} NOT IN ({vals_formatted}) AND {c} IS NOT NULL"
                     ).fetchone()[0]
-                    passed = invalid_cnt == 0
+                    passed = (invalid_cnt == 0)
                     details = f"Found {invalid_cnt:,} invalid value entries"
 
                 else:
@@ -232,10 +235,11 @@ if has_data:
 
     # 2. Generate Attribute Profile ONLY for columns declared in rules.xlsx
     if metadata_rules_df is not None and not metadata_rules_df.empty:
-        target_cols = [
-            c for c in metadata_rules_df["column_name"].dropna().unique()
-            if c in all_columns
-        ]
+        target_cols = []
+        for raw_c in metadata_rules_df["column_name"].dropna().unique():
+            k = str(raw_c).strip().lower()
+            if k in col_map:
+                target_cols.append(col_map[k])
     else:
         target_cols = []
 
