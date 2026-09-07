@@ -5,28 +5,33 @@ import requests
 import streamlit as st
 
 # =========================================================
-# 1. PAGE CONFIGURATION & STYLING
+# 1. PAGE CONFIGURATION & ENHANCED STYLING
 # =========================================================
 st.set_page_config(
     page_title="Metadata Driven DQ Profile",
-    page_icon="🎯",
+    page_icon="📈",
     layout="wide",
 )
 
-# Custom CSS to hide Streamlit header, footer, and "Created by" badge
+# Comprehensive CSS targeting internal elements, headers, toolbars, and badges
 hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            [data-testid="stStatusWidget"] {visibility: hidden;}
-            [data-testid="stActionButtonIcon"] {visibility: hidden;}
-            div[class*="viewerBadge"] {display: none !important;}
-            </style>
-            """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    [data-testid="stHeader"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+    [data-testid="stActionButtonIcon"] {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
+    div[class*="viewerBadge"] {display: none !important;}
+    div[class*="styles_viewerBadge"] {display: none !important;}
+    .viewerBadge_container__1QSob {display: none !important;}
+    </style>
+"""
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-st.title("🎯 Metadata Driven DQ Profile")
+st.title("📈 Metadata Driven DQ Profile")
 st.caption("No pre-loaded data or rules. Upload a dataset and rules.xlsx to execute an audit.")
 
 # =========================================================
