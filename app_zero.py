@@ -1,4 +1,5 @@
 import io
+import json
 import duckdb
 import pandas as pd
 import requests
@@ -22,7 +23,7 @@ st.sidebar.header("Ingestion Engine")
 source_type = st.sidebar.radio(
     "Select Data Source Type:",
     [
-        "Local CSV File",
+        "Local File (CSV / JSON / XML)",
         "Cloud Database (SQL)",
         "REST API Endpoint",
     ],
@@ -30,15 +31,30 @@ source_type = st.sidebar.radio(
 
 df_target = None
 
-# OPTION 1: Local File Upload (Strictly No Fallback)
-if source_type == "Local CSV File":
-    uploaded_file = st.sidebar.file_uploader("Upload CSV Dataset", type=["csv"])
+# OPTION 1: Local File Upload (CSV, JSON, XML)
+if source_type == "Local File (CSV / JSON / XML)":
+    uploaded_file = st.sidebar.file_uploader(
+        "Upload Dataset", type=["csv", "json", "xml"]
+    )
     if uploaded_file is not None:
         try:
-            df_target = pd.read_csv(uploaded_file)
-            st.sidebar.success(f"Loaded CSV: {len(df_target):,} rows")
+            file_ext = uploaded_file.name.split(".")[-1].lower()
+
+            if file_ext == "csv":
+                df_target = pd.read_csv(uploaded_file)
+            elif file_ext == "json":
+                try:
+                    df_target = pd.read_json(uploaded_file)
+                except ValueError:
+                    uploaded_file.seek(0)
+                    data = json.load(uploaded_file)
+                    df_target = pd.json_normalize(data)
+            elif file_ext == "xml":
+                df_target = pd.read_xml(uploaded_file)
+
+            st.sidebar.success(f"Loaded {file_ext.upper()}: {len(df_target):,} rows")
         except Exception as e:
-            st.sidebar.error(f"Error reading CSV: {e}")
+            st.sidebar.error(f"Error reading {uploaded_file.name}: {e}")
 
 # OPTION 2: Cloud Database (SQL Queries)
 elif source_type == "Cloud Database (SQL)":
@@ -306,4 +322,4 @@ elif has_data:
     st.dataframe(con.execute("SELECT * FROM target_data LIMIT 10").df(), use_container_width=True)
 
 else:
-    st.info("👈 Please upload a CSV dataset in the sidebar to begin.")
+    st.info("👈 Please upload a dataset in the sidebar to begin.")
