@@ -6,3 +6,6 @@ matplotlib
 seaborn
 requests
 lxml
+shiny
+htmltools
+bslib
